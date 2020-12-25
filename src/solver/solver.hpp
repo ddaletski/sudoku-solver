@@ -1,3 +1,4 @@
+#pragma once
 #include "../board.hpp"
 #include <set>
 #include <bitset>
@@ -12,7 +13,7 @@ class Solver {
 
     bool lastInRange(size_t row, size_t col, size_t y, size_t height, size_t x, size_t width) {
         size_t value = board_.cell(row, col).value();
-        if(value == 0) {
+        if(value != 0) {
             return false;
         }
 
@@ -26,7 +27,7 @@ class Solver {
                 if (valInCell == 0) {
                     return false;
                 }
-                foundValues[valInCell] = true;
+                foundValues[valInCell - 1] = true;
             }
         }
 
@@ -34,6 +35,7 @@ class Solver {
         for(size_t idx = 0; idx < 9; ++idx) {
             if(!foundValues[idx]) {
                 lastValue = idx + 1;
+                break;
             }
         }
 
@@ -44,17 +46,17 @@ class Solver {
         return true;
     }
 
-    void lastInRow(size_t row, size_t col) {
+    bool lastInRow(size_t row, size_t col) {
         return lastInRange(row, col, row, 1, 0, 9);
     }
 
-    void lastInCol() {
+    bool lastInCol(size_t row, size_t col) {
         return lastInRange(row, col, 0, 9, col, 1);
     }
 
-    void lastInBlock(size_t row, size_t col) {
-        size_t blockStartRow = row / 3;
-        size_t blockStartCol = col / 3;
+    bool lastInBlock(size_t row, size_t col) {
+        size_t blockStartRow = row / 3 * 3;
+        size_t blockStartCol = col / 3 * 3;
         return lastInRange(row, col, blockStartRow, 3, blockStartCol, 3);
     }
 
@@ -71,7 +73,15 @@ class Solver {
                 if (i == row && j == col) {
                     continue;
                 }
-                changed |= board_.cell(i, j).remove(value);
+                auto &otherCell = board_.cell(i, j);
+                auto otherVal = otherCell.value();
+                if(otherVal != 0) {
+                    continue;
+                }
+                if(otherVal == value) {
+                    throw std::runtime_error("CAN'T BE!");
+                }
+                changed |= otherCell.remove(value);
             }
         }
 
@@ -87,13 +97,13 @@ class Solver {
     }
 
     bool adjustBlock(size_t row, size_t col) {
-        size_t blockStartRow = row / 3;
-        size_t blockStartCol = col / 3;
+        size_t blockStartRow = row / 3 * 3;
+        size_t blockStartCol = col / 3 * 3;
         return adjustRange(row, col, blockStartRow, 3, blockStartCol, 3);
     }
 
 
-    void solve() {
+    bool solve() {
         bool somethingChanged = true;
         while(somethingChanged) {
             somethingChanged = false;
@@ -109,6 +119,8 @@ class Solver {
                 }
             }
         }
+
+        return board_.solved();
     }
 
 

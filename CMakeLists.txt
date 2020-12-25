@@ -23,3 +23,7 @@ add_executable(runTests ${CMAKE_CURRENT_LIST_DIR}/tests/tests.cpp)
 target_link_libraries(runTests sudoku)
 target_link_libraries(runTests Catch2::Catch2)
 target_include_directories(runTests PRIVATE ${SRC_DIR})
+
+add_custom_command(TARGET runTests PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/tests/data $<TARGET_FILE_DIR:runTests>/testdata)
