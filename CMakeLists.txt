@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(sudoku)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 set(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(3RD_DIR ${CMAKE_CURRENT_LIST_DIR}/3rd)

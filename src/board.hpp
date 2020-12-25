@@ -1,48 +1,72 @@
+#include <algorithm>
+#include <array>
 #include <bitset>
 #include <iostream>
-#include <array>
+#include <vector>
 
-struct Cell {
-    std::bitset<9> bits;
+class Board;
+class Range;
 
-    void remove(size_t value) {
-        bits[value] = false;
-    }
-    size_t value() {
-        if(bits.count() == 1) {
-            for(size_t i = 0; i < 9; ++i) {
-                if(bits[i]) {
-                    return i;
-                }
-            }
-        }
-        return 0;
-    }
+class Cell {
+ public:
+    void remove(size_t value) { bits_[value] = false; }
+    size_t value() const;
 
-    void value(size_t val) {
-        bits.reset();
-        bits.set(val, true);
-    }
+    void value(size_t val);
+
+ private:
+    std::bitset<9> bits_;
 };
 
 class Board {
  public:
-    Board() {
-        for(auto& cell: cells_) {
-            cell.bits.set();
+    Board();
+
+    template <typename DataSource>
+    Board(DataSource src) : Board()
+    {
+        size_t idx = 0;
+        for (auto& val : src) {
+            assert(val >= 0 && val <= 9);
+            cells_[idx].value(val);
+
+            if (idx == 81) {
+                break;
+            }
+            ++idx;
         }
     }
+
+    static Board empty() { return Board(); }
+
+    static Board trivial();
 
     Cell& cell(size_t row, size_t col) { return cells_[row * 9 + col]; }
+    const Cell& cell(size_t row, size_t col) const { return cells_[row * 9 + col]; }
 
-    bool solved() {
-        for(auto& cell: cells_) {
-            if(cell.value() == 0) {
-                return false;
-            }
-        }
-        return true;
-    }
+    bool solved() const;
+
+    bool valid() const;
+
+    friend std::ostream& operator<<(std::ostream& stream, const Board& board);
+
  private:
-    std::array<Cell, 9*9> cells_;
+    std::array<Cell, 9 * 9> cells_;
+};
+
+class Range {
+    friend class Board;
+
+ public:
+    std::vector<size_t> values() const;
+    bool unique() const;
+
+ private:
+    Range(const Board& board, size_t y, size_t height, size_t x, size_t width);
+
+    size_t x_;
+    size_t y_;
+    size_t w_;
+    size_t h_;
+    std::vector<const Cell*> cells_;
 };

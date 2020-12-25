@@ -103,6 +103,9 @@ class Solver {
                     somethingChanged |= adjustRow(i, j);
                     somethingChanged |= adjustCol(i, j);
                     somethingChanged |= adjustBlock(i, j);
+                    somethingChanged |= lastInRow(i, j);
+                    somethingChanged |= lastInCol(i, j);
+                    somethingChanged |= lastInBlock(i, j);
                 }
             }
         }
