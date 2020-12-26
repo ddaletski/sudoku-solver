@@ -49,6 +49,83 @@ TEST_CASE( "catch2 works", "[dummy]" ) {
 }
 
 
+void fillRange(Board::Range& rng, std::string& afterExpected) {
+    for(auto entry: rng) {
+        auto newVal = rand() % 9 + 1;
+        entry.cell.value(newVal);
+        afterExpected[entry.pos.y * 9 + entry.pos.x] = newVal + '0';
+    }
+}
+
+TEST_CASE("range tests") {
+    Board b = Board::trivial();
+
+    SECTION("row range iterates where needed") {
+        for(size_t i = 0; i < 9; ++i) {
+            auto rng = b.range(i, 0, 1, 9);
+            for(auto entry : rng) {
+                auto& cell = entry.cell;
+                auto trueCell = b.cell(entry.pos.y, entry.pos.x);
+                REQUIRE(cell.value() == trueCell.value());
+            }
+        }
+    }
+
+    SECTION("col range iterates where needed") {
+        for(size_t i = 0; i < 9; ++i) {
+            auto rng = b.range(0, i, 9, 1);
+            for(auto entry : rng) {
+                auto& cell = entry.cell;
+                auto trueCell = b.cell(entry.pos.y, entry.pos.x);
+                REQUIRE(cell.value() == trueCell.value());
+            }
+        }
+    }
+
+    SECTION("block range iterates where needed") {
+        for(size_t i = 0; i < 3; ++i) {
+            for(size_t j = 0; j < 3; ++j) {
+                auto rng = b.range(i * 3, j * 3, 3, 3);
+                for(auto entry : rng) {
+                    auto& cell = entry.cell;
+                    auto trueCell = b.cell(entry.pos.y, entry.pos.x);
+                    REQUIRE(cell.value() == trueCell.value());
+                }
+            }
+        }
+    }
+
+    SECTION("row range iterator mutates appropriate values") {
+        std::string afterExpected = std::string(81, '.');
+        for(size_t i = 0; i < 9; ++i) {
+            auto rng = b.range(i, 0, 1, 9);
+            fillRange(rng, afterExpected);
+        }
+        REQUIRE(afterExpected == b.toString());
+    }
+
+    SECTION("col range iterator mutates appropriate values") {
+        std::string afterExpected = std::string(81, '.');
+        for(size_t i = 0; i < 9; ++i) {
+            auto rng = b.range(0, i, 9, 1);
+            fillRange(rng, afterExpected);
+        }
+        REQUIRE(afterExpected == b.toString());
+    }
+
+    SECTION("block range iterator mutates appropriate values") {
+        std::string afterExpected = std::string(81, '.');
+        for(size_t i = 0; i < 3; ++i) {
+            for(size_t j = 0; j < 3; ++j) {
+                auto rng = b.range(i * 3, j * 3, 3, 3);
+                fillRange(rng, afterExpected);
+            }
+        }
+        REQUIRE(afterExpected == b.toString());
+    }
+}
+
+
 TEST_CASE("board tests", "[board]") {
     SECTION("empty board isn't solved") {
         Board b;
@@ -66,7 +143,7 @@ TEST_CASE("board tests", "[board]") {
     }
 
     SECTION("real puzzles test") {
-        auto testSamples = loadTestSamples(std::fs::path("./testdata/30.csv"));
+        auto testSamples = loadTestSamples(std::fs::path("./testdata/easy_30.csv"));
         REQUIRE(!testSamples.empty());
 
         SECTION("parsed board has the same count of filled cells") {
@@ -94,7 +171,6 @@ TEST_CASE("board tests", "[board]") {
                 auto b = Board::fromString(sample.puzzle);
                 auto solver = Solver(b);
                 solver.solve();
-                std::cout << b << std::endl;
                 REQUIRE(b.valid());
             }
         }
@@ -106,8 +182,8 @@ TEST_CASE("board tests", "[board]") {
                 auto solver = Solver(b);
                 solver.solve();
 
-                for(int i = 0; i < 9; ++i) {
-                    for(int j = 0; j < 9; ++j) {
+                for(size_t i = 0; i < 9; ++i) {
+                    for(size_t j = 0; j < 9; ++j) {
                         auto& cellBeforeSolution = before.cell(i, j);
                         auto& cellAfterSolution = before.cell(i, j);
                         if(cellBeforeSolution.certain()) {

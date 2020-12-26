@@ -1,5 +1,5 @@
 #include "board.hpp"
-#include <set>
+#include <cassert>
 #include <sstream>
 #include <stdexcept>
 
@@ -66,7 +66,7 @@ Board Board::fromString(const std::string& str)
     Board board;
 
     std::istringstream ss(str);
-    // assert(str.size() >= 81);
+    assert(str.size() >= 81);
     char chr;
     for(int i = 0; i < 81; ++i) {
         ss >> chr;
@@ -80,6 +80,24 @@ Board Board::fromString(const std::string& str)
     return board;
 }
 
+Board::Range Board::range(size_t y, size_t x, size_t height, size_t width)
+{
+    std::array<Cell*, 81> arr;
+    for(int i = 0; i < 81; ++i) {
+        arr[i] = &cells_[i];
+    }
+    return Range(arr, y, x, height, width);
+}
+
+Board::ConstRange Board::range(size_t y, size_t x, size_t height, size_t width) const
+{
+    std::array<const Cell*, 81> arr;
+    for(int i = 0; i < 81; ++i) {
+        arr[i] = &cells_[i];
+    }
+    return ConstRange(arr, y, x, height, width);
+}
+
 bool Board::solved() const
 {
     for (auto& cell : cells_) {
@@ -90,6 +108,7 @@ bool Board::solved() const
     return true;
 }
 
+
 size_t Board::filledCount() const
 {
     return std::count_if(cells_.begin(), cells_.end(), std::mem_fn(&Cell::certain));
@@ -98,14 +117,14 @@ size_t Board::filledCount() const
 bool Board::valid() const
 {
     for (int i = 0; i < 9; ++i) {
-        auto rowRng = Range(*this, i, 1, 0, 9);
+        auto rowRng = range(i, 0, 1, 9);
         if(!rowRng.unique()) {
             return false;
         }
     }
 
     for (int i = 0; i < 9; ++i) {
-        auto colRng = Range(*this, 0, 9, i, 1);
+        auto colRng = range(0, i, 9, 1);
         if(!colRng.unique()) {
             return false;
         }
@@ -113,7 +132,7 @@ bool Board::valid() const
 
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
-            auto blockRng = Range(*this, i * 3, 3, j*3, 3);
+            auto blockRng = range(i*3, j*3, 3, 3);
             if (!blockRng.unique()) {
                 return false;
             }
@@ -163,42 +182,4 @@ std::ostream& operator<<(std::ostream& stream, const Board& board)
     stream << board.toString(format);
 
     return stream;
-}
-
-Range::Range(const Board& board, size_t y, size_t height, size_t x, size_t width)
-    : x_(x), y_(y), w_(width), h_(height)
-{
-    cells_.reserve(w_ * h_);
-    for (size_t i = 0; i < h_; ++i) {
-        for (size_t j = 0; j < w_; ++j) {
-            cells_.push_back(&board.cell(i, j));
-        }
-    }
-}
-
-std::vector<size_t> Range::values() const
-{
-    std::vector<size_t> vals(cells_.size(), 0);
-    std::transform(std::begin(cells_), std::end(cells_), std::begin(vals),
-                   [](auto& pCell) { return pCell->value(); });
-
-    return vals;
-}
-
-bool Range::unique() const
-{
-    std::set<size_t> metValues;
-
-    for (auto& cell : cells_) {
-        if(!cell->certain()) {
-            continue;
-        }
-        auto val = cell->value();
-        if (metValues.count(val)) {
-            return false;
-        }
-        metValues.insert(val);
-    }
-
-    return true;
 }

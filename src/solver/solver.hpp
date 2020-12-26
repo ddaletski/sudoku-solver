@@ -11,56 +11,7 @@ class Solver {
     {
     }
 
-    bool lastInRange(size_t row, size_t col, size_t y, size_t height, size_t x, size_t width) {
-        size_t value = board_.cell(row, col).value();
-        if(value != 0) {
-            return false;
-        }
-
-        std::bitset<9> foundValues;
-        for (size_t i = y; i < y + height; ++i) {
-            for (size_t j = x; j < x + width; ++j) {
-                if (i == row && j == col) {
-                    continue;
-                }
-                auto valInCell = board_.cell(i, j).value();
-                if (valInCell == 0) {
-                    return false;
-                }
-                foundValues[valInCell - 1] = true;
-            }
-        }
-
-        size_t lastValue = 0;
-        for(size_t idx = 0; idx < 9; ++idx) {
-            if(!foundValues[idx]) {
-                lastValue = idx + 1;
-                break;
-            }
-        }
-
-        assert(lastValue != 0);
-
-        board_.cell(row, col).value(lastValue);
-
-        return true;
-    }
-
-    bool lastInRow(size_t row, size_t col) {
-        return lastInRange(row, col, row, 1, 0, 9);
-    }
-
-    bool lastInCol(size_t row, size_t col) {
-        return lastInRange(row, col, 0, 9, col, 1);
-    }
-
-    bool lastInBlock(size_t row, size_t col) {
-        size_t blockStartRow = row / 3 * 3;
-        size_t blockStartCol = col / 3 * 3;
-        return lastInRange(row, col, blockStartRow, 3, blockStartCol, 3);
-    }
-
-    bool adjustRange(size_t row, size_t col, size_t y, size_t height, size_t x, size_t width) {
+    bool adjustRange(size_t row, size_t col, Board::Range rng) {
         bool changed = false;
 
         size_t value = board_.cell(row, col).value();
@@ -68,40 +19,39 @@ class Solver {
             return changed;
         }
 
-        for (size_t i = y; i < y + height; ++i) {
-            for (size_t j = x; j < x + width; ++j) {
-                if (i == row && j == col) {
-                    continue;
-                }
-                auto &otherCell = board_.cell(i, j);
-                auto otherVal = otherCell.value();
-                if(otherVal != 0) {
-                    continue;
-                }
-                if(otherVal == value) {
-                    throw std::runtime_error("CAN'T BE!");
-                }
-                changed |= otherCell.remove(value);
+        for(auto entry: rng) {
+            auto pos = entry.pos;
+            if (pos.y == row && pos.x == col) {
+                continue;
             }
+
+            auto &otherCell = entry.cell;
+            auto otherVal = otherCell.value();
+            if(otherVal != 0) {
+                continue;
+            }
+            if(otherVal == value) {
+                throw std::runtime_error("CAN'T BE!");
+            }
+            changed |= otherCell.remove(value);
         }
 
         return changed;
     }
 
     bool adjustRow(size_t row, size_t col) {
-        return adjustRange(row, col, row, 1, 0, 9);
+        return adjustRange(row, col, board_.range(row, 0, 1, 9));
     }
 
     bool adjustCol(size_t row, size_t col) {
-        return adjustRange(row, col, 0, 9, col, 1);
+        return adjustRange(row, col, board_.range(0, col, 9, 1));
     }
 
     bool adjustBlock(size_t row, size_t col) {
         size_t blockStartRow = row / 3 * 3;
         size_t blockStartCol = col / 3 * 3;
-        return adjustRange(row, col, blockStartRow, 3, blockStartCol, 3);
+        return adjustRange(row, col, board_.range(blockStartRow, blockStartCol, 3, 3));
     }
-
 
     bool solve() {
         bool somethingChanged = true;
@@ -113,9 +63,6 @@ class Solver {
                     somethingChanged |= adjustRow(i, j);
                     somethingChanged |= adjustCol(i, j);
                     somethingChanged |= adjustBlock(i, j);
-                    somethingChanged |= lastInRow(i, j);
-                    somethingChanged |= lastInCol(i, j);
-                    somethingChanged |= lastInBlock(i, j);
                 }
             }
         }
